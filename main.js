@@ -2,6 +2,7 @@ let slideData = [
     {
         text: "",
         img: "",
+        fontSize: "90",
     },
     /*
     {
@@ -21,7 +22,11 @@ let slideData = [
     */
 ];
 
+const defaultFontSize = 90;
+
 let saved = true;
+
+let isFullscreen = false;
 
 let currentSlide = 0;
 let currentSlidePreviewListScroll = 0;
@@ -32,6 +37,7 @@ const img = document.createElement("img");
 const menu = document.createElement("div");
 const textInput = document.createElement("input");
 const imgInput = document.createElement("input");
+const fontInput = document.createElement("input");
 const startBtn = document.createElement("button");
 const fileMenu = document.createElement("div");
 const nameInput = document.createElement("input");
@@ -50,6 +56,8 @@ document.body.appendChild(menu);
 menu.appendChild(textInput);
 menu.appendChild(imgInput);
 menu.appendChild(startBtn);
+menu.appendChild(document.createElement("div"));
+menu.appendChild(fontInput);
 document.body.appendChild(fileMenu);
 fileMenu.appendChild(nameInput);
 fileMenu.appendChild(document.createElement("div"));
@@ -75,6 +83,7 @@ fileInput.classList.add("file-input");
 
 textInput.placeholder = "Text";
 imgInput.placeholder = "Image url";
+fontInput.placeholder = "Font size";
 startBtn.innerHTML = "Start";
 nameInput.placeholder = "Name";
 newBtn.innerHTML = "New";
@@ -98,19 +107,36 @@ const updateSlide = () => {
         img.src = imgInput.value;
         slide.appendChild(img);
     }else{
-        text.innerHTML = textInput.value;
+        
+        let scale = 1;
+        
+        if(isFullscreen){
+            scale = window.innerWidth / 800;
+        }
+        
+        const fontSize = slideData[currentSlide].fontSize;
+        
+        text.style.fontSize = scale * fontSize + "px";
+        
+        const lineLength =  (800 - 200) * scale / (fontSize * scale / 2);
+        const rows = Math.ceil(textInput.value.length / lineLength)
+        
+        let indentedText = "";
+        for(let i = 0; i < textInput.value.length; i += lineLength){
+            indentedText += textInput.value.slice(i, i + lineLength) + "<br>";
+        }
+        
+        text.innerHTML = indentedText;
+        
+        text.style.marginTop = (slide.clientHeight / 2 - rows * 1.25 * (fontSize * scale / 2)) + "px";
         slide.appendChild(text);
     }
 }
 
-const updateMenu = (data) => {
-    if(data){
-        textInput.value = data.text;
-        imgInput.value = data.img;
-    }else{
-        textInput.value = "";
-        imgInput.value = "";
-    }
+const updateMenu = () => {
+    textInput.value = slideData[currentSlide].text;
+    imgInput.value = slideData[currentSlide].img;
+    fontInput.value = slideData[currentSlide].fontSize;
 }
 
 const nextSlide = () => {
@@ -139,7 +165,6 @@ const updateSlidePreviewList = () => {
         const previewText = document.createElement("h2");
         const previewImg = document.createElement("img");
         
-        document.body.appendChild(slidePreviewList)
         slidePreviewList.appendChild(preview);
         if(data.img !== ""){
             preview.appendChild(previewImg);
@@ -149,15 +174,40 @@ const updateSlidePreviewList = () => {
             previewImg.src = data.img;
         }else{
             preview.appendChild(previewText);
+            
+            previewText.classList.add("slide-preview-text");
+            
+            const previewWidth = 160;
+            const previewHeight = 90;
+            const sideMargin = 40;
+            
+            const fontSize = data.fontSize;
+            
+            const previewFontSize = fontSize * previewWidth / slide.clientWidth;
+            
+            previewText.style.fontSize = previewFontSize + "px";
         
-            previewText.innerHTML = data.text;
+            let indentedText = "";
+            const lineLength = (previewWidth - sideMargin) * 2 / previewFontSize;
+            const lines = Math.ceil(data.text.length / lineLength)
+            
+            for(let i = 0; i < lines; i++){
+                indentedText += data.text.slice(i * lineLength, i * lineLength + lineLength) + "<br>";
+            }
+            
+            previewText.innerHTML = indentedText;
+            
+            previewText.style.marginTop = (previewHeight / 2 - lines * 1.25 * (previewFontSize / 2)) + "px";
+            
         }
         
+        
+        
         preview.classList.add("slide-preview-list-item");
-        previewText.classList.add("slide-preview-text");
         if(i === currentSlide){
             preview.classList.add("selected");
         }
+        
         
         preview.addEventListener("click", (e) => {
             currentSlide = i;
@@ -182,7 +232,8 @@ document.addEventListener("keydown", (e) => {
     if(document.activeElement !== textInput
     && document.activeElement !== imgInput
     && document.activeElement !== fileInput
-    && document.activeElement !== nameInput){
+    && document.activeElement !== nameInput
+    && document.activeElement !== fontInput){
         if(e.keyCode === 39
         || e.keyCode === 40
         || e.keyCode === 32
@@ -236,8 +287,27 @@ imgInput.addEventListener("input", (e) => {
     updateSlidePreviewList();
 });
 
+fontInput.addEventListener("input", (e) => {
+    
+    slideData[currentSlide].fontSize = fontInput.value;
+    //console.log(fontInput.value);
+    
+    updateSlide();
+    updateSlidePreviewList();
+    
+    
+})
+
 startBtn.addEventListener("click", (e) => {
     slide.requestFullscreen();
+});
+
+document.addEventListener("fullscreenchange", (e) => {   
+    
+    isFullscreen = !isFullscreen;
+    
+    updateMenu();
+    updateSlide();
 });
 
 
@@ -245,7 +315,7 @@ newBtn.addEventListener("click", (e) => {
     
     if(!saved){
         const p = confirm("Unsaved work. Do you still wish to continue?");
-        if(p === null){
+        if(!p){
             return;
         }
     }
@@ -255,6 +325,7 @@ newBtn.addEventListener("click", (e) => {
     slideData.push({
         text: "",
         img: "",
+        fontSize: defaultFontSize
     });
     
     nameInput.value = "";
@@ -272,7 +343,7 @@ openBtn.addEventListener("click", (e) => {
     
     if(!saved){
         const p = confirm("Unsaved work. Do you still wish to continue?");
-        if(p === null){
+        if(!p){
             return;
         }
     }
@@ -322,6 +393,7 @@ addSlideBtn.addEventListener("click", (e) => {
     const newSlide = {
         text: "",
         img: "",
+        fontSize: defaultFontSize,
     };
     
     const tmp1 = slideData.slice(0, currentSlide + 1);
@@ -331,7 +403,7 @@ addSlideBtn.addEventListener("click", (e) => {
     currentSlide++;
 
     updateMenu(slideData[currentSlide]);
-    updateSlide(slideData[currentSlide]);
+    updateSlide();
     updateSlidePreviewList();
 
 });
@@ -343,7 +415,7 @@ removeSlideBtn.addEventListener("click", (e) => {
     previousSlide();
     
     updateMenu(slideData[currentSlide]);
-    updateSlide(slideData[currentSlide]);
+    updateSlide();
     updateSlidePreviewList();        
     
 });
@@ -375,12 +447,12 @@ fileInput.addEventListener("change", (e) => {
         openFileMenu.style.display = "none";
     
         updateMenu(slideData[currentSlide]);
-        updateSlide(slideData[currentSlide]);
+        updateSlide();
         updateSlidePreviewList();
             
     };
 });
 
 updateMenu(slideData[currentSlide]);
-updateSlide(slideData[currentSlide]);
+updateSlide();
 updateSlidePreviewList();
