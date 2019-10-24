@@ -1,8 +1,10 @@
+const defaultFontSize = 50;
+
 let slideData = [
     {
         text: "",
         img: "",
-        fontSize: "90",
+        fontSize: defaultFontSize,
     },
     /*
     {
@@ -21,8 +23,6 @@ let slideData = [
     },
     */
 ];
-
-const defaultFontSize = 90;
 
 let saved = true;
 
@@ -221,6 +221,9 @@ const updateSlidePreviewList = () => {
             updateSlide();
             updateSlidePreviewList();
         });
+        
+        let held = false;
+        
         
     });
     
